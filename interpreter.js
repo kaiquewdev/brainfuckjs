@@ -6,20 +6,22 @@ var Brainfuck = (function () {
     // Pointer
     var _pointer = 0;
     // Memory representation
-    var _memory = (function () { 
+    var _memory = (function () {
+        "use strict";
         var output = [];
         var c = 0;
         var limit = 300*100;
         
         while ( c < limit ) {
-            output.push('0');
+            output.push(0);
             c += 1;
         }
 
         return output;
     } ());
-
+    // Alocation
     var __memory = (function ( buffer ) {
+        "use strict";
         var output = false;
         buffer = buffer || '';
 
@@ -46,12 +48,14 @@ var Brainfuck = (function () {
     
     // Increment the pointer
     commandsExecution.incrementPointer = function () {
+        "use strict";
         _pointer += 1;
 
         return true;
     };
     // Decrement the pointer
     commandsExecution.decremenetPointer = function () {
+        "use strict";
         if ( _pointer >= 0 ) {
             _pointer -= 1;
         }
@@ -59,14 +63,15 @@ var Brainfuck = (function () {
         return true;
     };
     // Increment the byte in pointer
-    commandsExecution.byteIncrement = function ( inLoop ) {
+    commandsExecution.byteIncrement = function ( ) {
+        "use strict";
         var output = false;
         var pointerValue = __memory[ _pointer ];
 
         if ( typeof pointerValue === 'number' || pointerValue ) {
             // Casting to number
             output =  pointerValue;
-            output += '1';
+            output += 1;
             __memory[ _pointer ] = output;
             output = true;
         }
@@ -75,13 +80,14 @@ var Brainfuck = (function () {
     };
     // Decrement the byte in pointer
     commandsExecution.byteDecrement = function () {
+        "use strict";
         var output = false;
         var pointerValue = __memory[ _pointer ];
 
         if ( pointerValue ) {
             // Casting to number
-            output = pointerValue.toString();
-            output -= '1';
+            output = pointerValue;
+            output -= 1;
             __memory[ _pointer ] = output;
             output = true;
         }
@@ -90,6 +96,7 @@ var Brainfuck = (function () {
     };
     // Return the byte at the pointer
     commandsExecution.byteOutput = function () {
+        "use strict";
         var output = false;
         var pointerValue = __memory[ _pointer ];
 
@@ -101,6 +108,7 @@ var Brainfuck = (function () {
     };
     // Input a byte and store it in the byte at the pointer.
     commandsExecution.byteInput = function ( input ) {
+        "use strict";
         var output = false;
         var pointerValue = __memory[ _pointer ];
         input = input || '';
@@ -133,8 +141,11 @@ var Brainfuck = (function () {
     _.prototype.commands = _commands;
     _.prototype.memory = __memory;
 
+    // Internal list verify if target exist
+    var _internal = {};
     // Verify if exist a item in the array
-    var hasInDeepList = function ( target, arrayList ) {
+    _internal.hasInDeepList = function ( target, arrayList ) {
+        "use strict";
         var output = false;
         target = target || '';
         arrayList = arrayList || '';
@@ -150,32 +161,62 @@ var Brainfuck = (function () {
 
         return output;
     };
+    // Internal for verify buffer
+    _internal.filter = function ( arrayList ) {
+        var output = false;
+        arrayList = arrayList || '';
+
+        if ( arrayList ) {
+            for ( var i in arrayList ) {
+                __memory[i] = __memory[i].toString();
+            }
+            
+            output = true;
+        }
+
+        return output;
+    };
+    // Internal for verify char
 
     _.prototype.run = function ( input ) {
+        "use strict";
         var output = '';
         var counterDeep = 0;
         var lastDeep = 0;
+        var registers = [];
         
         if ( input.length > 0 ) {
+            // Read input
             for ( var i = 0; i < input.length; i += 1 ) {
-                if ( hasInDeepList( input[i], commands ) ) {
+                // Commando in list
+                if ( _internal.hasInDeepList( input[i], commands ) ) {
+                    // for storage output
                     if ( input[i] === commands[4] ) {
                         output += _commands[ input[i] ]();
+                    // Execute other commands
                     } else {
                         _commands[ input[i] ]();
                     }
+                // Iteraction start
                 } if ( input[i] === '[' ) {
                     counterDeep += 1;
+                // Iteraction end
                 } if ( input[i] === ']' ) {
                     counterDeep -= 1;
+                    // If end last iteraction
+                    if ( counterDeep === 0 ) {
+                        _internal.filter( registers );
+                    }
+                // Other loop
                 } if ( counterDeep > 0 && counterDeep > lastDeep ) {
                     lastDeep = counterDeep;
-
-                    if ( input[i] === '>' || input[i] === '<' ) {
-                        _commands[ input[i] ]();    
+                // Register of pointers for convert
+                } if ( counterDeep > 0 && input[i] === commands[0] || input[i] === commands[1] ) {
+                    if ( !_internal.hasInDeepList( _pointer, registers ) ) {
+                        registers.push( _pointer );
                     }
                 }
-            }    
+            }
         }
 
         return output;
